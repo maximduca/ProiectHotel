@@ -32,7 +32,6 @@ Aplicatia va ilustra urmatoarele functionalitati:
 ### 2. Ierarhii si mostenire
 
 1. ierarhie camere: `Camera` (baza) -> `CameraStandard`, `Apartament`, `Penthouse`
-2. clasele baza sunt proprii proiectului, nu derivate din clase predefinite ale domeniului
 
 ### 3. Polimorfism, virtuale pure, NVI
 

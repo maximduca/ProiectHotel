@@ -1,0 +1,37 @@
+Structura și Organizarea Codului
+Un prim pilon al calității acestui proiect este separarea preocupărilor (Separation of Concerns). Codul este organizat meticulos în fișiere de antet (.h) distincte, cum ar fi Abonament.h, Client.h, SalaSport.h și module pentru excepții. Această abordare nu este doar o convenție stilistică sau o preferință estetică, ci o necesitate arhitecturală absolută care facilitează compilarea separată, modularizarea sistemului și îmbunătățește masiv lizibilitatea pe măsură ce proiectul crește în dimensiuni. Prin declararea interfețelor și a structurilor de date în headere, ascunzând în același timp logica complexă acolo unde este necesar, dezvoltatorul oferă o barieră puternică de abstractizare. Această barieră protejează utilizatorul claselor (de exemplu, clasa SalaSport care utilizează clasa Client) de complexitatea internă a obiectelor manipulate, reducând astfel riscul de cuplare strânsă (tight coupling) între componentele aplicației.
+
+Ierarhia de Clase și Pilonii POO
+Inima proiectului este ierarhia clasei Abonament. Aceasta servește drept clasă de bază pentru trei derivate distincte și bine gândite: Spartan, SpartanPlatinum și Luptator.
+
+Moștenirea și Încapsularea: Fiecare clasă derivată moștenește atributele fundamentale (cum ar fi variabila protejată pretBaza) de la clasa părinte, dar își definește propriile particularități și reguli de preț. De exemplu, în timp ce Spartan și Luptator returnează prețul de bază standard, clasa SpartanPlatinum introduce o logică specifică de reducere financiară (pretBaza * 0.9). Această structură demonstrează o înțelegere profundă a relației „is-a” (este o), unde orice tip de abonament creat este, la bază, un contract generic, dar cu funcționalități și reguli de cost extinse. Încapsularea este respectată prin restricționarea accesului direct la preț, acesta putând fi obținut doar prin metodele expuse public.
+
+Polimorfismul și Funcțiile Virtuale Pure: Un aspect remarcabil este utilizarea funcțiilor virtuale pure, precum calculeazaPretFinal() și afiseazaDetalii(). Prin marcarea acestor funcții cu = 0 în clasa de bază, se garantează că nicio instanță generică de Abonament nu poate fi creată direct (clasa devine pur abstractă), obligând dezvoltatorul să definească logica de calcul al prețului și afișarea în absolut fiecare subclasă. Polimorfismul la runtime (prin vtable) este exploatat la maximum: atunci când se apelează metoda de calcul a prețului pe un pointer de tip bază, programul știe exact să execute versiunea suprascrisă (override) corespunzătoare tipului real de obiect aflat în memorie la momentul respectiv.
+
+Gestiunea Resurselor și Smart Pointers
+În C++ modern, gestionarea manuală a memoriei prin alocări și dezalocări explicite (cu new și delete) este adesea o sursă de erori grave, cum ar fi scurgerile de memorie (memory leaks) sau accesarea unor zone invalide (dangling pointers). Proiectul adresează această problemă majoră printr-o execuție exemplară: utilizarea std::unique_ptr<Abonament> în cadrul clasei Client. Stocarea polimorfică utilizând pointeri inteligenți permite manipularea unitară a tuturor tipurilor de abonamente fără riscul de a uita eliberarea memoriei; la distrugerea obiectului Client, memoria alocată abonamentului este curățată automat.
+
+Un punct critic în orice clasă care gestionează resurse dinamice printr-un pointer unic este respectarea Regulii celor Trei/Cinci, deoarece std::unique_ptr nu poate fi copiat implicit. Proiectul implementează strălucit un „Copy Constructor” cu clonare polimorfică (folosind metoda virtuală clone(), un design pattern de tip Prototype). Mai mult, „Assignment Operator” (operatorul de atribuire =) este implementat folosind idiomul Copy-and-Swap (prin funcția friend void swap). Această abordare garantează că, atunci când un obiect de tip Client este copiat (de exemplu, când este introdus în vectorul bazei de date), nu se mută doar pointerii, ci se creează instanțe noi, independente ale abonamentelor. Idiomul Copy-and-Swap asigură totodată o siguranță puternică la excepții (strong exception safety).
+
+Siguranța și Tratarea Erorilor prin Excepții
+Sistemul de gestiune pentru o sală de sport este, prin natura sa, predispus la erori de flux sau de date: introducerea unor clienți înainte de inițializarea sistemului, căutarea unor ID-uri care nu au fost încă înregistrate sau operarea cu date calendaristice aberante. Proiectul utilizează o ierarhie proprie de excepții, demonstrând o arhitectură robustă:
+
+GymException: Clasa de bază pentru toate erorile specifice domeniului aplicației.
+
+DataNesetataException: Aruncată atunci când utilizatorul încearcă să adauge clienți sau să avanseze timpul înainte de a seta "ceasul" intern al sălii.
+
+DataInvalidaException: Gestionează situațiile în care se introduc zile sau luni care nu corespund unui calendar real (protejând integritatea structurii std::tm).
+
+IdInexistentException: Previne căderile aplicației atunci când se fac interogări pentru clienți care nu se află în vector.
+
+Utilizarea mecanismului try/catch în funcția main, protejând întregul flux din meniurile interactive, asigură faptul că aplicația nu se va prăbuși în mod neașteptat (segmentation fault sau abort). În schimb, va oferi un feedback text informativ și controlat utilizatorului, permițându-i să reia operațiunea și să corecteze eroarea.
+
+Tehnici Avansate: Logica Temporală și C++ Modern
+Un element de finețe tehnică ce înlocuiește simplele validări statice este integrarea unui subsistem de manipulare a timpului. Prin utilizarea bibliotecii <ctime> și a structurii std::tm, aplicația transcende un simplu program de stocare a datelor, devenind un simulator dinamic. Capacitatea clasei Client de a verifica expirarea abonamentului folosind std::difftime reflectă o viziune extrem de practică.
+
+Mai mult, funcția de reactivare() introduce o logică de business complexă. Sistemul reține data primei activări, o compară cu noua dată setată în sistem, transformă timpul în secunde (std::time_t) și apoi în zile. Dacă reactivarea are loc într-o marjă permisă (sub 120 de zile), sistemul aplică automat un flag boolean (areReducereReactivare) care modifică prețul final calculat. Aceasta este o funcționalitate de nivel enterprise, demonstrând că starea sistemului evoluează odată cu trecerea timpului simulat.
+
+Interfața cu Utilizatorul și Modurile de Rulare
+Aplicația oferă două moduri de interacțiune bine segmentate arhitectural în linia de comandă: un meniu pentru „Gestiunea Clienților” și un modul pentru „Controlul Timpului și Datei”. Această despărțire a responsabilităților sugerează un design orientat către UX elementar, dar extrem de eficient.
+
+Capacitatea de a seta o dată inițială și facilitatea de a o „avansa” cu un număr specific de zile funcționează ca un mediu demonstrativ esențial pentru testarea automată și manuală a funcționalităților. Acest panou de control permite unui evaluator sau utilizator să valideze că logica de business (expirarea abonamentelor, pierderea sau păstrarea discounturilor, calculul precis al sumelor) funcționează exact conform specificațiilor, demonstrând sustenabilitatea întregului ecosistem creat în cod.
